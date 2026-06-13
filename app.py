@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify, render_template
+import certifi
 import requests
 import random
 import time
@@ -7,102 +8,176 @@ import json
 import datetime
 import base64
 from dotenv import load_dotenv
-from sqlalchemy import create_engine, Column, Integer, String, Float, Text, DateTime
-from sqlalchemy.orm import declarative_base, sessionmaker
-from contextlib import contextmanager
+from pymongo import MongoClient
+from bson import ObjectId
+import urllib.request
+import re
+import ssl
+from html.parser import HTMLParser
+
+# HTML Parser class to extract table rows from vegetablemarketprice.com without external libraries
+class VegHTMLParser(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.in_table = False
+        self.in_tr = False
+        self.in_td = False
+        self.current_row = []
+        self.rows = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "table":
+            self.in_table = True
+        elif tag == "tr" and self.in_table:
+            self.in_tr = True
+            self.current_row = []
+        elif tag == "td" and self.in_tr:
+            self.in_td = True
+
+    def handle_endtag(self, tag):
+        if tag == "table":
+            self.in_table = False
+        elif tag == "tr" and self.in_tr:
+            self.in_tr = False
+            if self.current_row:
+                self.rows.append(self.current_row)
+        elif tag == "td" and self.in_td:
+            self.in_td = False
+
+    def handle_data(self, data):
+        if self.in_td:
+            self.current_row.append(data.strip())
+
+def scrape_live_vegetable_prices(crop_name):
+    # Maps user searches to the exact name on the vegetable website
+    veg_name_map = {
+        "tomato": "Tomato",
+        "onion": "Onion Big",
+        "potato": "Potato",
+        "garlic": "Garlic",
+        "ginger": "Ginger",
+        "cabbage": "Cabbage",
+        "cauliflower": "Cauliflower",
+        "green chilli": "Green Chilli",
+        "chilli": "Green Chilli",
+        "brinjal": "Brinjal",
+        "okra": "Ladies Finger",
+        "pumpkin": "Pumpkin",
+        "bitter gourd": "Bitter Gourd",
+        "bottle gourd": "Bottle Gourd",
+        "cucumber": "Cucumber",
+        "carrot": "Carrot",
+        "radish": "Radish",
+        "spinach": "Spinach",
+        "lemon": "Lemon (Lime)",
+        "coriander": "Coriander Leaves",
+        "apple": "Apple",
+        "banana": "Raw Banana (Plantain)"
+    }
+    
+    target_veg = veg_name_map.get(crop_name.lower())
+    if not target_veg:
+        return None
+        
+    # We scrape 3 key reference regions to get live prices
+    states_to_scrape = [
+        {"name": "Andhra Pradesh", "slug": "andhrapradesh", "district": "Guntur", "market": "Guntur APMC"},
+        {"name": "Maharashtra", "slug": "maharashtra", "district": "Nashik", "market": "Pimpalgaon Mandi"},
+        {"name": "Delhi", "slug": "delhi", "district": "New Delhi", "market": "Azadpur Mandi"}
+    ]
+    
+    results = []
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+    }
+    
+    for s in states_to_scrape:
+        try:
+            url = f"https://vegetablemarketprice.com/market/{s['slug']}/today"
+            req = urllib.request.Request(url, headers=headers)
+            context = ssl._create_unverified_context()
+            with urllib.request.urlopen(req, context=context, timeout=5) as response:
+                html = response.read().decode('utf-8')
+                
+                parser = VegHTMLParser()
+                parser.feed(html)
+                
+                for row in parser.rows:
+                    row_clean = [x for x in row if x]
+                    if len(row_clean) >= 3 and row_clean[0].lower() == target_veg.lower():
+                        # Extract prices (e.g. '₹24' -> 24)
+                        min_price_str = re.sub(r'[^\d]', '', row_clean[1])
+                        retail_nums = re.findall(r'\d+', row_clean[2])
+                        max_price_str = retail_nums[-1] if retail_nums else min_price_str
+                        
+                        # Convert Price/kg to Price/Quintal (Multiply by 100)
+                        min_val = float(min_price_str) * 100
+                        max_val = float(max_price_str) * 100
+                        
+                        results.append({
+                            "state": s["name"],
+                            "district": s["district"],
+                            "market": s["market"],
+                            "min": int(min_val),
+                            "max": int(max_val),
+                            "trend": random.choice(["up", "down", "flat"])
+                        })
+                        break
+        except Exception as e:
+            print(f"Live scraper failed for state {s['name']}: {e}")
+            
+    return results if len(results) > 0 else None
+
 
 # Load environment configuration
 load_dotenv()
 
 app = Flask(__name__)
 
-# --- SQLite Database Setup ---
-DATABASE_URL = "sqlite:///kisan_mitra.db"
-engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-Base = declarative_base()
+# --- MongoDB Database Setup ---
+MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
+client = MongoClient(MONGO_URI, tlsCAFile=certifi.where())
 
-class Profile(Base):
-    __tablename__ = "profiles"
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(100), default="Ramesh Kumar")
-    location = Column(String(150), default="Atmakur, Andhra Pradesh")
-    crops = Column(String(200), default="Rice, Cotton")
-    land_area = Column(Float, default=5.0)
-    language = Column(String(50), default="English")
+# Select database
+db = client["kisan_mitra"]
 
-class Expense(Base):
-    __tablename__ = "expenses"
-    id = Column(Integer, primary_key=True, index=True)
-    category = Column(String(50))
-    amount = Column(Float)
-    date = Column(DateTime, default=datetime.datetime.utcnow)
+# Collections (equivalent to SQL Tables)
+profiles_col = db["profiles"]
+expenses_col = db["expenses"]
+posts_col = db["community_posts"]
+mandi_cache_col = db["mandi_price_cache"]
 
-class CommunityPost(Base):
-    __tablename__ = "community_posts"
-    id = Column(Integer, primary_key=True, index=True)
-    user = Column(String(100))
-    text = Column(Text)
-    time_str = Column(String(50), default="Just now")
-    created_at = Column(DateTime, default=datetime.datetime.utcnow)
-
-class MandiPriceCache(Base):
-    __tablename__ = "mandi_price_cache"
-    id = Column(Integer, primary_key=True, index=True)
-    crop = Column(String(50))
-    state = Column(String(100))
-    market = Column(String(150))
-    min_price = Column(Float)
-    max_price = Column(Float)
-    trend = Column(String(10))
-    fetched_at = Column(DateTime, default=datetime.datetime.utcnow)
-
-# Create tables
-Base.metadata.create_all(bind=engine)
-
-@contextmanager
-def db_session():
-    session = SessionLocal()
-    try:
-        yield session
-        session.commit()
-    except Exception:
-        session.rollback()
-        raise
-    finally:
-        session.close()
 
 def seed_database():
-    with db_session() as db:
-        # Initial profile seed
-        profile = db.query(Profile).first()
-        if not profile:
-            profile = Profile(
-                name="Ramesh Kumar",
-                location="Atmakur, Andhra Pradesh",
-                crops="Rice, Cotton",
-                land_area=5.0,
-                language="English"
-            )
-            db.add(profile)
-            
-        # Initial community posts seed
-        post_count = db.query(CommunityPost).count()
-        if post_count == 0:
-            posts = [
-                CommunityPost(
-                    user="Suresh N.", 
-                    text="Has anyone noticed the whiteflies on the cotton crop recently?", 
-                    created_at=datetime.datetime.utcnow() - datetime.timedelta(hours=1)
-                ),
-                CommunityPost(
-                    user="Agri Expert", 
-                    text="Unseasonal rains expected tomorrow. Please cover harvested paddy.", 
-                    created_at=datetime.datetime.utcnow() - datetime.timedelta(hours=3)
-                )
-            ]
-            db.add_all(posts)
+    # 1. Initial profile seed
+    if profiles_col.count_documents({}) == 0:
+        profiles_col.insert_one({
+            "name": "Ramesh Kumar",
+            "location": "Atmakur, Andhra Pradesh",
+            "crops": "Rice, Cotton",
+            "land_area": 5.0,
+            "language": "English"
+        })
+        print("Database Seeded: Default profile created.")
+        
+    # 2. Initial community posts seed
+    if posts_col.count_documents({}) == 0:
+        posts = [
+            {
+                "user": "Suresh N.", 
+                "text": "Has anyone noticed the whiteflies on the cotton crop recently?", 
+                "created_at": datetime.datetime.utcnow() - datetime.timedelta(hours=1)
+            },
+            {
+                "user": "Agri Expert", 
+                "text": "Unseasonal rains expected tomorrow. Please cover harvested paddy.", 
+                "created_at": datetime.datetime.utcnow() - datetime.timedelta(hours=3)
+            }
+        ]
+        posts_col.insert_many(posts)
+        print("Database Seeded: Initial community posts created.")
 
+# Run database seeder
 seed_database()
 
 # --- Static fallback databases for offline/errors ---
@@ -133,12 +208,77 @@ STATIC_FALLBACK_PRICES = {
 }
 
 CROP_MAPPING = {
+    # Cereals & Grains
     "rice": "Paddy(Dhan)(Common)",
+    "rice (paddy)": "Paddy(Dhan)(Common)",
+    "paddy": "Paddy(Dhan)(Common)",
     "wheat": "Wheat",
+    "maize": "Maize",
+    "barley": "Barley",
+    "jowar": "Jowar(Sorghum)",
+    "bajra": "Bajra(Pearl Millet)",
+    "ragi": "Ragi (Finger Millet)",
+    
+    # Pulses
+    "chana": "Bengal Gram(Gram)",
+    "bengal gram": "Bengal Gram(Gram)",
+    "urad": "Black Gram (Urd)",
+    "moong": "Green Gram (Moong)",
+    "masur": "Lentil (Masur)",
+    "arhar": "Arhar (Tur-Red Gram)",
+    "tur": "Arhar (Tur-Red Gram)",
+    
+    # Vegetables
+    "tomato": "Tomato",
+    "onion": "Onion",
+    "potato": "Potato",
+    "garlic": "Garlic",
+    "ginger": "Ginger(Green)",
+    "cabbage": "Cabbage",
+    "cauliflower": "Cauliflower",
+    "green chilli": "Green Chilli",
+    "chilli": "Green Chilli",
+    "brinjal": "Brinjal",
+    "okra": "Bhindi(Ladies Finger)",
+    "okra (ladies finger)": "Bhindi(Ladies Finger)",
+    "bhindi": "Bhindi(Ladies Finger)",
+    "ladies finger": "Bhindi(Ladies Finger)",
+    "pumpkin": "Pumpkin",
+    "bottle gourd": "Bottle gourd",
+    "bitter gourd": "Bitter Gourd",
+    "cucumber": "Cucumber(Kheera)",
+    "carrot": "Carrot",
+    "radish": "Radish",
+    "spinach": "Spinach",
+    "coriander": "Coriander(Leaves)",
+    "lemon": "Lemon",
+    
+    # Fruits
+    "apple": "Apple",
+    "banana": "Banana",
+    "mango": "Mango",
+    "orange": "Orange",
+    "papaya": "Papaya",
+    "pomegranate": "Pomegranate",
+    "grapes": "Grapes",
+    "watermelon": "Watermelon",
+    "guava": "Guava",
+    "pineapple": "Pineapple",
+    "sweet lime": "Sweet Lime(Mosambi)",
+    "sweet lime (mosambi)": "Sweet Lime(Mosambi)",
+    "mosambi": "Sweet Lime(Mosambi)",
+    "coconut": "Coconut",
+    
+    # Commercial Crops
     "cotton": "Cotton",
+    "sugarcane": "Sugarcane",
     "soybean": "Soyabean",
-    "sugarcane": "Sugarcane"
+    "mustard": "Mustard",
+    "groundnut": "Groundnut",
+    "sunflower": "Sunflower",
+    "sesame": "Sesame(Sesamum,Gingelly,Til)"
 }
+
 
 @app.route('/')
 def home():
@@ -149,9 +289,8 @@ def home():
 def get_weather():
     try:
         # Dynamically fetch weather based on the farmer's profile location
-        with db_session() as db:
-            profile = db.query(Profile).first()
-            location = profile.location if profile else "Atmakur, Andhra Pradesh"
+        profile = profiles_col.find_one()
+        location = profile.get("location", "Atmakur, Andhra Pradesh") if profile else "Atmakur, Andhra Pradesh"
             
         city = location.split(',')[0].strip()
         url = f"https://wttr.in/{city}?format=j1"
@@ -171,7 +310,7 @@ def get_weather():
             ]
         })
     except Exception:
-        # Fallback to local offline profile values
+        # Fallback to offline values
         return jsonify({
             "location": "Atmakur, AP (Offline Mode)", 
             "current": {"temp": 32, "condition": "Partly Cloudy", "humidity": "65%", "wind": "12 km/h"}, 
@@ -179,122 +318,95 @@ def get_weather():
         })
 
 # --- 2. MANDI PRICES (Live data.gov.in Integration with Caching) ---
+# --- 2. MANDI PRICES (Live Web Scraper Integration with Caching) ---
 @app.route('/api/mandi_prices', methods=['GET'])
 def get_mandi_prices():
-    crop = request.args.get('crop', 'rice').lower()
+    crop_input = request.args.get('crop', 'rice').lower().strip()
     
-    # Runtime crop validation
-    if crop not in CROP_MAPPING:
-        return jsonify({
-            "error": f"Invalid crop: '{crop}'. Supported crops are: {', '.join(CROP_MAPPING.keys())}"
-        }), 400
+    # Normalize input variation names to match backend / fallback cache keys
+    normalize_map = {
+        "rice (paddy)": "rice",
+        "paddy": "rice",
+        "chana (bengal gram)": "chana",
+        "bengal gram": "chana",
+        "urad (black gram)": "urad",
+        "black gram": "urad",
+        "moong (green gram)": "moong",
+        "green gram": "moong",
+        "masur (lentil)": "masur",
+        "lentil": "masur",
+        "arhar (tur)": "arhar",
+        "tur": "arhar",
+        "okra (ladies finger)": "okra",
+        "ladies finger": "okra",
+        "bhindi": "okra",
+        "chilli": "green chilli",
+        "mosambi (sweet lime)": "mosambi",
+        "sweet lime": "mosambi",
+    }
+    crop_input = normalize_map.get(crop_input, crop_input)
     
-    # 1. Check local cache first
+    # 1. Check local MongoDB cache first (saves scraping time)
     now = datetime.datetime.utcnow()
     one_hour_ago = now - datetime.timedelta(hours=1)
     
-    with db_session() as db:
-        cached_prices = db.query(MandiPriceCache).filter(
-            MandiPriceCache.crop == crop, 
-            MandiPriceCache.fetched_at >= one_hour_ago
-        ).all()
+    cached_prices = list(mandi_cache_col.find({
+        "crop": crop_input, 
+        "fetched_at": {"$gte": one_hour_ago}
+    }))
         
-        if cached_prices:
-            return jsonify([{
-                "state": p.state,
-                "market": p.market,
-                "min": int(p.min_price),
-                "max": int(p.max_price),
-                "trend": p.trend
-            } for p in cached_prices])
+    if cached_prices:
+        return jsonify([{
+            "state": p["state"],
+            "district": p.get("district", "N/A"),
+            "market": p["market"],
+            "min": int(p["min_price"]),
+            "max": int(p["max_price"]),
+            "trend": p["trend"]
+        } for p in cached_prices])
             
-    # 2. Cache is expired or empty. Fetch from data.gov.in API
-    api_key = os.getenv("DATA_GOV_IN_API_KEY", "579b464db66ec23bdd000001cdd3946e44ce4aad7209ff7b23ac571b")
-    gov_commodity = CROP_MAPPING.get(crop, "Paddy(Dhan)(Common)")
-    resource_id = "9ef84268-d588-465a-a308-a864a43d0070"
-    url = f"https://api.data.gov.in/resource/{resource_id}?api-key={api_key}&format=json&limit=10&filters[commodity]={gov_commodity}"
-    
+    # 2. Cache is expired/empty. Scrape live vegetable/fruit prices directly from the web
     try:
-        response = requests.get(url, timeout=6)
-        if response.status_code == 200:
-            records = response.json().get("records", [])
+        scraped_results = scrape_live_vegetable_prices(crop_input)
+        if scraped_results:
             valid_cached_entries = []
-            valid_api_results = []
+            for r in scraped_results:
+                valid_cached_entries.append({
+                    "crop": crop_input,
+                    "state": r["state"],
+                    "district": r["district"],
+                    "market": r["market"],
+                    "min_price": r["min"],
+                    "max_price": r["max"],
+                    "trend": r["trend"],
+                    "fetched_at": now
+                })
+            mandi_cache_col.delete_many({"crop": crop_input})
+            mandi_cache_col.insert_many(valid_cached_entries)
+            print(f"Successfully scraped live prices for {crop_input} from vegetablemarketprice.com")
+            return jsonify(scraped_results)
+    except Exception as scrape_err:
+        print(f"Live scraper failed: {scrape_err}")
+
+    # 3. Scraper failed or crop is a cereal/grain (not on veggie site). Use older cache if available
+    old_prices = list(mandi_cache_col.find({"crop": crop_input}))
+    if old_prices:
+        return jsonify([{
+            "state": p["state"],
+            "district": p.get("district", "N/A"),
+            "market": p["market"],
+            "min": int(p["min_price"]),
+            "max": int(p["max_price"]),
+            "trend": p["trend"]
+        } for p in old_prices])
             
-            for r in records:
-                try:
-                    # Sanitize and validate state/market names
-                    state_val = r.get("state", "N/A").strip()
-                    market_val = r.get("market", "N/A").strip()
-                    if not state_val or not market_val or state_val == "N/A" or market_val == "N/A":
-                        continue
-                        
-                    # Parse and validate price values
-                    min_raw = r.get("min_price")
-                    max_raw = r.get("max_price")
-                    if min_raw is None or max_raw is None:
-                        continue
-                        
-                    min_p = float(min_raw)
-                    max_p = float(max_raw)
-                    
-                    # Range checks (Must be positive and within reasonable limits)
-                    if min_p <= 0 or max_p <= 0 or min_p > 100000 or max_p > 100000:
-                        continue
-                        
-                    # Swap if min > max
-                    if min_p > max_p:
-                        min_p, max_p = max_p, min_p
-                        
-                    # Create database cache entry
-                    trend_choice = random.choice(["up", "down", "flat"])
-                    entry = MandiPriceCache(
-                        crop=crop,
-                        state=state_val,
-                        market=market_val,
-                        min_price=min_p,
-                        max_price=max_p,
-                        trend=trend_choice,
-                        fetched_at=now
-                    )
-                    valid_cached_entries.append(entry)
-                    
-                    # Add to JSON output response list
-                    valid_api_results.append({
-                        "state": state_val,
-                        "market": market_val,
-                        "min": int(min_p),
-                        "max": int(max_p),
-                        "trend": trend_choice
-                    })
-                except (ValueError, TypeError, AttributeError):
-                    # Gracefully skip any corrupted JSON records
-                    continue
-            
-            if valid_cached_entries:
-                # Clear old cache for this crop and insert updated records
-                with db_session() as db:
-                    db.query(MandiPriceCache).filter(MandiPriceCache.crop == crop).delete()
-                    db.add_all(valid_cached_entries)
-                return jsonify(valid_api_results)
-                
-    except Exception as e:
-        print(f"Failed to query data.gov.in: {e}")
-        
-    # 3. Request failed or timed out. Fallback to older cache if available
-    with db_session() as db:
-        old_prices = db.query(MandiPriceCache).filter(MandiPriceCache.crop == crop).all()
-        if old_prices:
-            return jsonify([{
-                "state": p.state,
-                "market": p.market,
-                "min": int(p.min_price),
-                "max": int(p.max_price),
-                "trend": p.trend
-            } for p in old_prices])
-            
-    # 4. No cache exists at all. Return static fallback configurations
-    return jsonify(STATIC_FALLBACK_PRICES.get(crop, STATIC_FALLBACK_PRICES["rice"]))
+    # 4. Absolutely no other option. Return static fallback
+    fallback_data = STATIC_FALLBACK_PRICES.get(crop_input, STATIC_FALLBACK_PRICES["rice"])
+    for item in fallback_data:
+        if "district" not in item:
+            item["district"] = "Local"
+    return jsonify(fallback_data)
+
 
 # --- 3. GOVERNMENT SCHEMES API ---
 @app.route('/api/schemes', methods=['GET'])
@@ -319,14 +431,12 @@ def predict_disease():
         return jsonify({'error': 'Empty filename'}), 400
 
     try:
-        # Convert image bytes to Base64
         image_data = file.read()
         base64_image = base64.b64encode(image_data).decode('utf-8')
         mime_type = file.content_type or "image/jpeg"
         
         api_key = os.getenv("GEMINI_API_KEY")
         if not api_key:
-            # Fallback to smart diagnostic simulation with a badge warning
             time.sleep(1.5)
             return jsonify({
                 "disease": "Leaf Blight (Simulated / No Key)",
@@ -336,8 +446,6 @@ def predict_disease():
                 "is_demo": True
             })
 
-            
-        # Structure the payload for Gemini Flash Vision API
         url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
         headers = {"Content-Type": "application/json"}
         
@@ -375,7 +483,6 @@ def predict_disease():
             candidates = result_json.get("candidates", [])
             if candidates:
                 text_response = candidates[0].get("content", {}).get("parts", [{}])[0].get("text", "")
-                # Clean up wrapping code blocks if present
                 clean_text = text_response.strip().replace("```json", "").replace("```", "").strip()
                 parsed_result = json.loads(clean_text)
                 parsed_result["is_demo"] = False
@@ -412,7 +519,6 @@ def chat_assistant():
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
     headers = {"Content-Type": "application/json"}
     
-    # Configure the persona prompt
     system_prompt = (
         "You are Kisan Sahayak, a helpful and knowledgeable agricultural AI assistant for Indian farmers. "
         "Provide friendly, practical advice on crops, irrigation, fertilizers, pests, weather conditions, "
@@ -420,7 +526,6 @@ def chat_assistant():
         "Use bullet points for lists. Under no circumstances should you talk about topics completely unrelated to farming, agriculture, or weather."
     )
     
-    # Map messages history to Gemini schema
     contents = []
     for h in history:
         role = "user" if h.get("role") == "user" else "model"
@@ -429,7 +534,6 @@ def chat_assistant():
             "parts": [{"text": h.get("content", "")}]
         })
         
-    # Append user question with context
     contents.append({
         "role": "user",
         "parts": [{"text": f"[System Context: {system_prompt}]\n\nUser Question: {user_message}"}]
@@ -454,7 +558,7 @@ def chat_assistant():
             "is_demo": True
         })
 
-# --- 6. COMMUNITY API (Persistent SQLite) ---
+# --- 6. COMMUNITY API (Persistent MongoDB) ---
 @app.route('/api/community', methods=['GET', 'POST'])
 def handle_community():
     if request.method == 'POST':
@@ -465,71 +569,97 @@ def handle_community():
         if not user or not text:
             return jsonify({"error": "User name and post content are required"}), 400
             
-        with db_session() as db:
-            post = CommunityPost(user=user, text=text)
-            db.add(post)
+        posts_col.insert_one({
+            "user": user,
+            "text": text,
+            "created_at": datetime.datetime.utcnow()
+        })
         return jsonify({"status": "success"})
         
     # GET method
-    with db_session() as db:
-        posts = db.query(CommunityPost).order_by(CommunityPost.created_at.desc()).all()
-        result = []
-        now = datetime.datetime.utcnow()
-        
-        for p in posts:
-            delta = now - p.created_at
-            if delta.days > 0:
-                time_display = f"{delta.days} day{'s' if delta.days > 1 else ''} ago"
-            elif delta.seconds >= 3600:
-                hours = delta.seconds // 3600
-                time_display = f"{hours} hour{'s' if hours > 1 else ''} ago"
-            elif delta.seconds >= 60:
-                minutes = delta.seconds // 60
-                time_display = f"{minutes} min{'s' if minutes > 1 else ''} ago"
-            else:
-                time_display = "Just now"
-                
-            result.append({
-                "user": p.user,
-                "text": p.text,
-                "time": time_display
-            })
-        return jsonify(result)
+    posts = list(posts_col.find().sort("created_at", -1))
+    result = []
+    now = datetime.datetime.utcnow()
+    
+    for p in posts:
+        created_at = p.get("created_at", now)
+        delta = now - created_at
+        if delta.days > 0:
+            time_display = f"{delta.days} day{'s' if delta.days > 1 else ''} ago"
+        elif delta.seconds >= 3600:
+            hours = delta.seconds // 3600
+            time_display = f"{hours} hour{'s' if hours > 1 else ''} ago"
+        elif delta.seconds >= 60:
+            minutes = delta.seconds // 60
+            time_display = f"{minutes} min{'s' if minutes > 1 else ''} ago"
+        else:
+            time_display = "Just now"
+            
+        result.append({
+            "user": p["user"],
+            "text": p["text"],
+            "time": time_display
+        })
+    return jsonify(result)
 
-# --- 7. PROFILE API (Persistent SQLite) ---
+# --- 7. PROFILE API (Persistent MongoDB) ---
 @app.route('/api/profile', methods=['GET', 'POST'])
 def handle_profile():
-    if request.method == 'POST':
-        data = request.json or {}
-        with db_session() as db:
-            profile = db.query(Profile).first()
-            if not profile:
-                profile = Profile()
-                db.add(profile)
-            profile.name = data.get("name", profile.name)
-            profile.location = data.get("location", profile.location)
-            profile.crops = data.get("crops", profile.crops)
-            profile.land_area = float(data.get("land_area", profile.land_area))
-            profile.language = data.get("language", profile.language)
-        return jsonify({"status": "success"})
-        
-    with db_session() as db:
-        profile = db.query(Profile).first()
+    try:
+        if request.method == 'POST':
+            data = request.json or {}
+            profile = profiles_col.find_one()
+            
+            # Safely parse land_area to handle empty, null, or invalid inputs
+            land_area_raw = data.get("land_area")
+            try:
+                if land_area_raw is not None and land_area_raw != "":
+                    land_area_val = float(land_area_raw)
+                else:
+                    land_area_val = profile.get("land_area") if profile else 5.0
+            except (ValueError, TypeError):
+                land_area_val = profile.get("land_area") if profile else 5.0
+
+            update_data = {
+                "name": data.get("name") or (profile.get("name") if profile else "Ramesh Kumar"),
+                "location": data.get("location") or (profile.get("location") if profile else "Atmakur, Andhra Pradesh"),
+                "crops": data.get("crops") or (profile.get("crops") if profile else "Rice, Cotton"),
+                "land_area": land_area_val,
+                "language": data.get("language") or (profile.get("language") if profile else "English")
+            }
+            
+            if profile:
+                profiles_col.update_one({"_id": profile["_id"]}, {"$set": update_data})
+            else:
+                profiles_col.insert_one(update_data)
+                
+            return jsonify({"status": "success"})
+            
+        profile = profiles_col.find_one()
         if not profile:
-            profile = Profile(name="Ramesh Kumar", location="Atmakur, Andhra Pradesh", crops="Rice, Cotton", land_area=5.0, language="English")
-            db.add(profile)
-            db.commit()
-            profile = db.query(Profile).first()
+            profile = {
+                "name": "Ramesh Kumar",
+                "location": "Atmakur, Andhra Pradesh",
+                "crops": "Rice, Cotton",
+                "land_area": 5.0,
+                "language": "English"
+            }
+            profiles_col.insert_one(profile)
+            profile = profiles_col.find_one()
             
         return jsonify({
-            "name": profile.name,
-            "location": profile.location,
-            "crops": profile.crops,
-            "land_area": profile.land_area,
-            "language": profile.language
+            "name": profile.get("name"),
+            "location": profile.get("location"),
+            "crops": profile.get("crops"),
+            "land_area": profile.get("land_area"),
+            "language": profile.get("language")
         })
+    except Exception as e:
+        print(f"❌ Profile API Error: {e}")
+        return jsonify({"error": str(e)}), 500
 
-# --- 8. EXPENSES API (Persistent SQLite) ---
+
+# --- 8. EXPENSES API (Persistent MongoDB) ---
 @app.route('/api/expenses', methods=['GET', 'POST'])
 def handle_expenses():
     if request.method == 'POST':
@@ -540,40 +670,40 @@ def handle_expenses():
         if not category or amount <= 0:
             return jsonify({"error": "Invalid details"}), 400
             
-        with db_session() as db:
-            expense = Expense(category=category, amount=amount)
-            db.add(expense)
+        expenses_col.insert_one({
+            "category": category,
+            "amount": amount,
+            "date": datetime.datetime.utcnow()
+        })
         return jsonify({"status": "success"})
         
     # GET method
-    with db_session() as db:
-        expenses = db.query(Expense).all()
-        
-        result = []
-        summary = {"Seeds": 0.0, "Fertilizer": 0.0, "Labor": 0.0}
-        
-        for e in expenses:
-            result.append({
-                "id": e.id,
-                "category": e.category,
-                "amount": e.amount,
-                "date": e.date.strftime("%d-%m-%Y")
-            })
-            if e.category in summary:
-                summary[e.category] += e.amount
-            else:
-                summary[e.category] = e.amount
+    expenses = list(expenses_col.find())
+    result = []
+    summary = {"Seeds": 0.0, "Fertilizer": 0.0, "Labor": 0.0}
+    
+    for e in expenses:
+        expense_id = str(e["_id"])
+        result.append({
+            "id": expense_id,
+            "category": e["category"],
+            "amount": e["amount"],
+            "date": e["date"].strftime("%d-%m-%Y")
+        })
+        category = e["category"]
+        summary[category] = summary.get(category, 0.0) + e["amount"]
                 
-        return jsonify({"expenses": result, "summary": summary})
+    return jsonify({"expenses": result, "summary": summary})
 
-@app.route('/api/expenses/<int:expense_id>', methods=['DELETE'])
+@app.route('/api/expenses/<string:expense_id>', methods=['DELETE'])
 def delete_expense(expense_id):
-    with db_session() as db:
-        expense = db.query(Expense).filter(Expense.id == expense_id).first()
-        if not expense:
+    try:
+        res = expenses_col.delete_one({"_id": ObjectId(expense_id)})
+        if res.deleted_count == 0:
             return jsonify({"error": "Expense record not found"}), 404
-        db.delete(expense)
-    return jsonify({"status": "success"})
+        return jsonify({"status": "success"})
+    except Exception as e:
+        return jsonify({"error": f"Invalid ID format: {str(e)}"}), 400
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)

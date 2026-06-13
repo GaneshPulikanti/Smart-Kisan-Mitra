@@ -1,0 +1,6 @@
+Flask
+certifi
+requests
+python-dotenv
+pymongo[srv]
+gunicorn
