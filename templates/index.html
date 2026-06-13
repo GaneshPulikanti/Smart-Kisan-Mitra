@@ -1,0 +1,1874 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Kisan Mitra - Premium Farmer Assistant</title>
+    
+    <!-- Premium Fonts & Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- Dynamic Charts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        :root {
+            --primary: #10b981;
+            --primary-light: #34d399;
+            --primary-dark: #047857;
+            --bg-main: #050b08;
+            --bg-gradient: linear-gradient(135deg, #081611 0%, #030806 100%);
+            --card-bg: rgba(12, 24, 19, 0.7);
+            --card-border: rgba(16, 185, 129, 0.15);
+            --text-main: #f1f5f9;
+            --text-muted: #94a3b8;
+            --accent-amber: #fbbf24;
+            --accent-red: #f87171;
+            --accent-blue: #38bdf8;
+            --radius-lg: 16px;
+            --radius-md: 10px;
+            --shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+            scroll-behavior: smooth;
+        }
+
+        body {
+            background: var(--bg-main);
+            background-image: var(--bg-gradient);
+            color: var(--text-main);
+            min-height: 100vh;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- Custom Scrollbar --- */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.2);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--primary-dark);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--primary);
+        }
+
+        /* --- Header Navigation --- */
+        nav {
+            background: rgba(8, 18, 14, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            padding: 1.2rem 2.5rem;
+            border-bottom: 1px solid var(--card-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+        }
+
+        .nav-brand i {
+            font-size: 1.8rem;
+            color: var(--primary);
+            filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.4));
+        }
+
+        .nav-brand h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.6rem;
+            font-weight: 700;
+            background: linear-gradient(to right, #ffffff, var(--primary-light));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: 0.5px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 8px;
+        }
+
+        .nav-links button {
+            background: none;
+            border: none;
+            padding: 0.75rem 1.25rem;
+            cursor: pointer;
+            border-radius: var(--radius-md);
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .nav-links button i {
+            font-size: 1.1rem;
+        }
+
+        .nav-links button:hover {
+            color: var(--primary-light);
+            background: rgba(16, 185, 129, 0.08);
+        }
+
+        .nav-links button.active-nav {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--primary-light);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.1);
+        }
+
+        /* --- Container Layout --- */
+        .container {
+            max-width: 1250px;
+            width: 100%;
+            margin: 2rem auto;
+            padding: 0 1.5rem;
+            flex-grow: 1;
+        }
+
+        .page {
+            display: none;
+            animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* --- Glassmorphism Cards --- */
+        .card {
+            background: var(--card-bg);
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow);
+            transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            border-color: rgba(16, 185, 129, 0.3);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5), 0 0 20px rgba(16, 185, 129, 0.05);
+        }
+
+        h2 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: #ffffff;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            padding-bottom: 0.75rem;
+        }
+
+        h2 i {
+            color: var(--primary);
+        }
+
+        /* --- Forms & Inputs --- */
+        label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            display: block;
+            margin-bottom: 0.4rem;
+            margin-top: 1rem;
+        }
+
+        input[type="text"], input[type="number"], select, textarea {
+            width: 100%;
+            padding: 0.9rem 1.2rem;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--radius-md);
+            color: #ffffff;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: rgba(0, 0, 0, 0.5);
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.15);
+        }
+
+        .btn {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: #ffffff;
+            border: none;
+            padding: 0.9rem 1.8rem;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 1rem;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.2);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.35);
+            filter: brightness(1.1);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        /* --- Grids --- */
+        .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 2rem; }
+        .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem; }
+
+        /* --- Home Dashboard Hero --- */
+        .dashboard-hero {
+            position: relative;
+            background: linear-gradient(to bottom, rgba(8, 28, 20, 0.5), rgba(4, 12, 10, 0.9));
+            border-radius: 24px;
+            padding: 3rem;
+            border: 1px solid rgba(16, 185, 129, 0.1);
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            margin-bottom: 2rem;
+        }
+
+        .hero-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: #ffffff;
+            line-height: 1.2;
+            margin-bottom: 1rem;
+        }
+
+        .hero-desc {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            max-width: 650px;
+            margin-bottom: 2.5rem;
+        }
+
+        /* --- Weather UI Custom --- */
+        .weather-banner {
+            background: linear-gradient(135deg, #0f2e24 0%, #081a14 100%);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            border-radius: 20px;
+            padding: 2.5rem;
+            box-shadow: var(--shadow);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .weather-main {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+        }
+
+        .weather-temp {
+            font-family: 'Outfit', sans-serif;
+            font-size: 4.5rem;
+            font-weight: 800;
+            background: linear-gradient(to bottom, #ffffff, #a7f3d0);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .weather-meta {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .weather-loc {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.4rem;
+            font-weight: 600;
+        }
+
+        .weather-cond {
+            font-size: 1.1rem;
+            color: var(--primary-light);
+            text-transform: capitalize;
+        }
+
+        .weather-clock-panel {
+            background: rgba(0, 0, 0, 0.4);
+            padding: 0.8rem 1.5rem;
+            border-radius: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .weather-clock-panel span {
+            font-family: monospace;
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: var(--accent-amber);
+        }
+
+        .blink-dot {
+            height: 8px;
+            width: 8px;
+            background-color: var(--primary-light);
+            border-radius: 50%;
+            display: inline-block;
+            animation: blinker 1.5s linear infinite;
+        }
+        @keyframes blinker { 50% { opacity: 0; } }
+
+        .smart-advisory {
+            background: rgba(251, 191, 36, 0.08);
+            border-left: 4px solid var(--accent-amber);
+            padding: 1.2rem 1.8rem;
+            border-radius: 0 12px 12px 0;
+            color: #fef08a;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-size: 1.05rem;
+            margin-bottom: 2rem;
+        }
+
+        .smart-advisory i {
+            color: var(--accent-amber);
+            font-size: 1.5rem;
+        }
+
+        .forecast-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .forecast-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: var(--radius-md);
+            padding: 1.5rem;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .forecast-card:hover {
+            background: rgba(255, 255, 255, 0.06);
+            transform: translateY(-4px);
+        }
+
+        .forecast-day {
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+
+        .forecast-temp {
+            font-family: 'Outfit', sans-serif;
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin: 8px 0;
+        }
+
+        /* --- Mandi Table Styles --- */
+        .mandi-filter-bar {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .mandi-filter-bar select {
+            max-width: 250px;
+        }
+
+        .search-wrapper {
+            position: relative;
+            flex-grow: 1;
+        }
+
+        .search-wrapper i {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+        }
+
+        .search-wrapper input {
+            padding-left: 2.5rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0 8px;
+            margin-top: 1rem;
+        }
+
+        th {
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.05);
+        }
+
+        td {
+            padding: 1.2rem 1rem;
+            background: rgba(255, 255, 255, 0.02);
+            transition: background 0.2s ease;
+        }
+
+        tr:hover td {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        tr td:first-child {
+            border-top-left-radius: 8px;
+            border-bottom-left-radius: 8px;
+            border-left: 3px solid var(--primary);
+        }
+
+        tr td:last-child {
+            border-top-right-radius: 8px;
+            border-bottom-right-radius: 8px;
+        }
+
+        .trend-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+        }
+
+        .trend-up { background: rgba(16, 185, 129, 0.12); color: var(--primary-light); }
+        .trend-down { background: rgba(248, 113, 113, 0.12); color: var(--accent-red); }
+        .trend-flat { background: rgba(148, 163, 184, 0.12); color: var(--text-muted); }
+
+        /* --- Government Schemes Visual Grid --- */
+        .scheme-card {
+            background: rgba(16, 28, 23, 0.5);
+            border-left: 4px solid var(--primary);
+            border-radius: var(--radius-md);
+            padding: 1.8rem;
+            border-top: 1px solid var(--card-border);
+            border-right: 1px solid var(--card-border);
+            border-bottom: 1px solid var(--card-border);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .scheme-category {
+            display: inline-block;
+            background: rgba(56, 189, 248, 0.1);
+            color: var(--accent-blue);
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            padding: 4px 10px;
+            border-radius: 20px;
+            align-self: flex-start;
+            margin-bottom: 12px;
+        }
+
+        .scheme-card h3 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.25rem;
+            color: #ffffff;
+            margin-bottom: 8px;
+        }
+
+        .scheme-card p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            line-height: 1.5;
+            margin-bottom: 1.5rem;
+            flex-grow: 1;
+        }
+
+        /* --- Modals --- */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(8px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal {
+            background: #09120e;
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius-lg);
+            padding: 2.5rem;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+            animation: modalIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes modalIn {
+            from { transform: scale(0.9); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        /* --- AI Crop Doctor UI --- */
+        .upload-area {
+            border: 2px dashed rgba(16, 185, 129, 0.3);
+            background: rgba(255, 255, 255, 0.01);
+            border-radius: var(--radius-lg);
+            padding: 4rem 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .upload-area:hover {
+            background: rgba(16, 185, 129, 0.03);
+            border-color: var(--primary);
+        }
+
+        .upload-area i {
+            color: var(--text-muted);
+            margin-bottom: 15px;
+            transition: color 0.3s ease;
+        }
+
+        .upload-area:hover i {
+            color: var(--primary);
+        }
+
+        .preview-wrapper {
+            position: relative;
+            max-width: 100%;
+            max-height: 350px;
+            display: none;
+            margin: 1.5rem auto;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        #preview {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
+        }
+
+        /* --- Scanning Radar Animation --- */
+        .scanner-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(to right, transparent, var(--primary-light), transparent);
+            box-shadow: 0 0 12px var(--primary);
+            animation: scan 2s linear infinite;
+            display: none;
+        }
+
+        @keyframes scan {
+            0% { top: 0%; }
+            50% { top: 100%; }
+            100% { top: 0%; }
+        }
+
+        .demo-mode-badge {
+            background: rgba(251, 191, 36, 0.1);
+            color: var(--accent-amber);
+            border: 1px solid rgba(251, 191, 36, 0.2);
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            display: inline-block;
+            margin-bottom: 10px;
+        }
+
+        /* --- Kisan Sahayak Chatbot UI --- */
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: 600px;
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius-lg);
+            background: rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+
+        .chat-header {
+            padding: 1.2rem 2rem;
+            background: rgba(16, 28, 23, 0.8);
+            border-bottom: 1px solid var(--card-border);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .chat-header-avatar {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            background: rgba(16, 185, 129, 0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .chat-header-avatar i {
+            font-size: 1.3rem;
+            color: var(--primary-light);
+        }
+
+        .chat-messages {
+            flex-grow: 1;
+            padding: 2rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .msg-bubble {
+            max-width: 75%;
+            padding: 1rem 1.4rem;
+            border-radius: 16px;
+            line-height: 1.6;
+            font-size: 0.98rem;
+            animation: chatBubbleIn 0.3s ease forwards;
+        }
+
+        @keyframes chatBubbleIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .msg-user {
+            background: var(--primary-dark);
+            color: #ffffff;
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+
+        .msg-bot {
+            background: rgba(255, 255, 255, 0.05);
+            color: #f1f5f9;
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .msg-bot p, .msg-bot ul {
+            margin-bottom: 8px;
+        }
+        .msg-bot ul {
+            padding-left: 20px;
+        }
+
+        .msg-bot:last-child {
+            margin-bottom: 0;
+        }
+
+        .chat-input-bar {
+            padding: 1.2rem 2rem;
+            background: rgba(16, 28, 23, 0.8);
+            border-top: 1px solid var(--card-border);
+            display: flex;
+            gap: 1rem;
+        }
+
+        .chat-input-bar input {
+            margin: 0;
+            background: rgba(0, 0, 0, 0.5);
+        }
+
+        .chat-shortcuts {
+            display: flex;
+            gap: 10px;
+            padding: 10px 2rem;
+            overflow-x: auto;
+            background: rgba(0, 0, 0, 0.1);
+            border-top: 1px solid rgba(255, 255, 255, 0.02);
+        }
+
+        .shortcut-btn {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 6px 14px;
+            border-radius: 20px;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s ease;
+        }
+
+        .shortcut-btn:hover {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--primary-light);
+            border-color: rgba(16, 185, 129, 0.2);
+        }
+
+        /* --- Expense Tracker Custom Styling --- */
+        .expense-list-container {
+            max-height: 280px;
+            overflow-y: auto;
+            margin-top: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .expense-item {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            border-radius: 8px;
+            padding: 10px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .expense-item-meta h4 {
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+
+        .expense-item-meta span {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .expense-item-actions {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .expense-item-actions span {
+            font-family: 'Outfit', sans-serif;
+            font-weight: 700;
+            color: var(--primary-light);
+        }
+
+        .btn-delete {
+            background: none;
+            border: none;
+            color: var(--accent-red);
+            cursor: pointer;
+            font-size: 1rem;
+            opacity: 0.7;
+            transition: opacity 0.2s ease;
+        }
+
+        .btn-delete:hover {
+            opacity: 1;
+        }
+
+        /* --- Community Forums layout --- */
+        .forum-composer {
+            background: rgba(255, 255, 255, 0.01);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 1.5rem;
+            border-radius: var(--radius-lg);
+            margin-bottom: 2rem;
+        }
+
+        .forum-composer textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+
+        .post-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            border-radius: var(--radius-md);
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .post-card:hover {
+            background: rgba(255, 255, 255, 0.03);
+            border-color: rgba(16, 185, 129, 0.15);
+        }
+
+        .post-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .post-user {
+            font-family: 'Outfit', sans-serif;
+            font-weight: 700;
+            color: var(--primary-light);
+        }
+
+        .post-time {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .post-text {
+            line-height: 1.5;
+            color: var(--text-main);
+        }
+
+        /* Loading Spinner */
+        .spinner {
+            display: none;
+            margin: 2rem auto;
+            width: 44px;
+            height: 44px;
+            border: 4px solid rgba(16, 185, 129, 0.1);
+            border-top: 4px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 1s cubic-bezier(0.5, 0.1, 0.4, 0.9) infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* General layout helpers */
+        .w-100 { width: 100%; }
+        .justify-center { justify-content: center; }
+        .align-center { align-items: center; }
+        .flex-between { display: flex; justify-content: space-between; align-items: center; }
+    </style>
+</head>
+<body>
+
+    <!-- Premium Sticky Header Navigation -->
+    <nav>
+        <a href="#" class="nav-brand" onclick="showPage('home')">
+            <i class="fas fa-leaf"></i>
+            <h1>Kisan Mitra</h1>
+        </a>
+        <div class="nav-links">
+            <button class="active-nav" onclick="showPage('home')"><i class="fas fa-home"></i> <span>Home</span></button>
+            <button onclick="showPage('weather')"><i class="fas fa-cloud-sun"></i> <span>Weather</span></button>
+            <button onclick="showPage('market')"><i class="fas fa-chart-line"></i> <span>Mandi</span></button>
+            <button onclick="showPage('schemes')"><i class="fas fa-landmark"></i> <span>Schemes</span></button>
+            <button onclick="showPage('doctor')"><i class="fas fa-stethoscope"></i> <span>AI Doctor</span></button>
+            <button onclick="showPage('chat')"><i class="fas fa-robot"></i> <span>AI Assistant</span></button>
+            <button onclick="showPage('forum')"><i class="fas fa-users"></i> <span>Community</span></button>
+            <button onclick="showPage('profile')"><i class="fas fa-user-circle"></i> <span>Farm Logs</span></button>
+        </div>
+    </nav>
+
+    <!-- Main Dynamic Content Wrapper -->
+    <div class="container">
+        
+        <!-- --- PAGE 1: HOME WELCOME --- -->
+        <div id="home" class="page active">
+            <div class="dashboard-hero">
+                <div class="hero-content">
+                    <h2 class="hero-title" style="border:none; margin:0;">Dynamic Farm Intelligence</h2>
+                    <p class="hero-desc">Your ultimate digital assistant matching live agricultural analysis, weather forecasts, market rates, and AI-powered health monitoring to boost crop yield.</p>
+                </div>
+            </div>
+            
+            <div class="grid-2">
+                <div class="card">
+                    <h3><i class="fas fa-lightbulb" style="color: var(--accent-amber); margin-right: 8px;"></i> Smart Agriculture Advisory</h3>
+                    <p id="dashboard-advisory" style="margin-top: 15px; line-height: 1.6; color: var(--text-muted);">
+                        Loading dynamic advice for your crops...
+                    </p>
+                </div>
+                <div class="card">
+                    <h3><i class="fas fa-info-circle" style="color: var(--accent-blue); margin-right: 8px;"></i> Quick Information</h3>
+                    <p style="margin-top: 15px; line-height: 1.6; color: var(--text-muted);">
+                        Select any tab from the top navigation to check live Mandi rates, get instant plant leaf diagnostics using the AI Doctor, consult our AI assistant for farming, or record expenses in your profile.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- --- PAGE 2: WEATHER ADVISORY --- -->
+        <div id="weather" class="page">
+            <h2><i class="fas fa-cloud-sun"></i> Live Climate Intelligence</h2>
+            
+            <div id="weather-advisory" class="smart-advisory">
+                <i class="fas fa-info-circle"></i> 
+                <span id="advisory-text">Analysing local weather factors to schedule watering recommendations...</span>
+            </div>
+
+            <div class="weather-banner">
+                <div class="weather-main" id="current-weather-banner">
+                    <div style="font-size: 2.5rem; color: var(--primary-light);"><i class="fas fa-spinner fa-spin"></i></div>
+                    <div class="weather-meta">
+                        <span class="weather-loc">Connecting to live weather API...</span>
+                    </div>
+                </div>
+                <div class="weather-clock-panel">
+                    <span class="blink-dot"></span>
+                    <span id="internet-time">00:00:00 AM</span>
+                </div>
+            </div>
+
+            <h3 style="margin-bottom: 1.5rem; font-family: 'Outfit'; font-weight: 500; font-size: 1.3rem;">3-Day Regional Forecast</h3>
+            <div class="forecast-grid" id="forecast-cards">
+                <!-- Forecast dynamic cards inject here -->
+            </div>
+        </div>
+
+        <!-- --- PAGE 3: MANDI TRACKER --- -->
+        <div id="market" class="page">
+            <h2><i class="fas fa-chart-line"></i> Pan-India Mandi Price Feed</h2>
+            <div class="card">
+                <div class="mandi-filter-bar">
+                    <select id="market-crop" onchange="fetchMarketPrices()">
+                        <option value="rice">Rice (Paddy)</option>
+                        <option value="wheat">Wheat</option>
+                        <option value="cotton">Cotton</option>
+                        <option value="soybean">Soybean</option>
+                        <option value="sugarcane">Sugarcane</option>
+                    </select>
+                    <div class="search-wrapper">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="mandi-search" placeholder="Search by state or APMC market name..." onkeyup="filterMandiTable()">
+                    </div>
+                </div>
+                
+                <div class="spinner" id="mandi-spinner"></div>
+                
+                <div style="overflow-x: auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>State</th>
+                                <th>APMC Market Mandi</th>
+                                <th>Min Price (₹/Quintal)</th>
+                                <th>Max Price (₹/Quintal)</th>
+                                <th>Market Trend</th>
+                            </tr>
+                        </thead>
+                        <tbody id="market-body">
+                            <!-- Rows loaded by JS API calls -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- --- PAGE 4: ACTIVE SCHEMES --- -->
+        <div id="schemes" class="page">
+            <h2><i class="fas fa-landmark"></i> Verified Government Schemes</h2>
+            <div class="mandi-filter-bar">
+                <div class="search-wrapper" style="margin-bottom: 1.5rem;">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="scheme-search" placeholder="Search scheme names or categories (e.g. Loans, Insurance)..." onkeyup="filterSchemes()">
+                </div>
+            </div>
+            
+            <div class="grid-2" id="schemes-container">
+                <!-- Scheme cards loaded by JS -->
+            </div>
+        </div>
+
+        <!-- Scheme eligibility modal -->
+        <div class="modal-overlay" id="eligibility-modal">
+            <div class="modal">
+                <h3 id="modal-title" style="color: var(--primary-light); font-family: 'Outfit'; font-size: 1.4rem; margin-bottom: 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 8px;">Check Eligibility</h3>
+                <label>Farmer Land Size (Acres)</label>
+                <input type="number" id="modal-land" placeholder="e.g. 3.5">
+                <label>Annual Family Income (₹)</label>
+                <input type="number" id="modal-income" placeholder="e.g. 120000">
+                <div style="display: flex; gap: 12px; margin-top: 2rem;">
+                    <button class="btn" onclick="runEligibilityCheck()" style="flex: 1; justify-content: center;">Verify Now</button>
+                    <button class="btn" style="background: var(--accent-red); box-shadow: 0 4px 15px rgba(248, 113, 113, 0.2);" onclick="closeModal()">Cancel</button>
+                </div>
+                <div id="eligibility-result" style="margin-top: 1.5rem; padding: 1.2rem; border-radius: var(--radius-md); display: none; line-height: 1.5;"></div>
+            </div>
+        </div>
+
+        <!-- --- PAGE 5: AI CROP DOCTOR --- -->
+        <div id="doctor" class="page">
+            <h2><i class="fas fa-stethoscope"></i> AI Crop Diagnostic Laboratory</h2>
+            <div class="card">
+                <div class="upload-area" onclick="document.getElementById('file-upload').click()">
+                    <i class="fas fa-cloud-upload-alt fa-4x"></i>
+                    <p style="font-weight: 600; margin-bottom: 5px;">Drag & Drop or Click to Upload Leaf Image</p>
+                    <p style="font-size: 0.85rem; color: var(--text-muted);">Supports PNG, JPG, JPEG formats</p>
+                    <input type="file" id="file-upload" style="display: none;" accept="image/*" onchange="handleImageUpload(event)">
+                </div>
+
+                <div class="preview-wrapper" id="preview-wrapper">
+                    <div class="scanner-bar" id="scanner-ray"></div>
+                    <img id="preview" alt="Crop Image to Diagnose">
+                </div>
+
+                <div class="spinner" id="loader"></div>
+                
+                <div id="ml-result" style="display: none; margin-top: 2rem; padding: 2rem; background: rgba(16, 185, 129, 0.05); border: 1px solid var(--primary); border-radius: var(--radius-lg);">
+                    <div class="flex-between" style="border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 10px; margin-bottom: 1.5rem;">
+                        <h3 id="res-disease" style="color: var(--primary-light); font-family: 'Outfit'; font-size: 1.4rem;"></h3>
+                        <span id="demo-indicator" class="demo-mode-badge" style="display:none;">Offline Mode</span>
+                    </div>
+                    <p style="margin-bottom: 10px; font-size: 1.05rem;">Analysis Confidence: <strong id="res-conf" style="color:#ffffff;"></strong>%</p>
+                    <div style="display:flex; flex-direction:column; gap:12px; margin-top:1.5rem;">
+                        <p><strong>Organic Remedy Instructions:</strong><br><span id="res-remedy" style="color:var(--text-muted); line-height:1.5; display:inline-block; margin-top:4px;"></span></p>
+                        <p><strong>Recommended Pesticide Treatment:</strong><br><span id="res-pest" style="font-weight: 600; color: var(--accent-amber); display:inline-block; margin-top:4px;"></span></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- --- PAGE 6: KISAN SAHAYAK CHATBOT --- -->
+        <div id="chat" class="page">
+            <h2><i class="fas fa-robot"></i> Kisan Sahayak AI Assistant</h2>
+            <div class="chat-container">
+                <div class="chat-header">
+                    <div class="chat-header-avatar"><i class="fas fa-seedling"></i></div>
+                    <div>
+                        <h4 style="font-weight: 700; font-family:'Outfit';">Kisan Sahayak Chat</h4>
+                        <p style="font-size: 0.8rem; color: var(--primary-light);">Live agricultural advising active</p>
+                    </div>
+                </div>
+                
+                <!-- Chat Messages Scroll Area -->
+                <div class="chat-messages" id="chat-box">
+                    <div class="msg-bubble msg-bot">
+                        <p>Hello! I am **Kisan Sahayak**, your personal farming assistant. Ask me anything about crop planning, disease control, soil preparation, fertilizers, or government initiatives!</p>
+                    </div>
+                </div>
+                
+                <!-- Suggestion Quick Replies -->
+                <div class="chat-shortcuts">
+                    <button class="shortcut-btn" onclick="sendQuickPrompt('What fertilizer is best for paddy crops?')">Best Paddy Fertilizers</button>
+                    <button class="shortcut-btn" onclick="sendQuickPrompt('How do I apply for Kisan Credit Card (KCC)?')">How to apply for KCC</button>
+                    <button class="shortcut-btn" onclick="sendQuickPrompt('How often should I water cotton crops in hot weather?')">Cotton watering rules</button>
+                    <button class="shortcut-btn" onclick="sendQuickPrompt('Remedies for yellowing crop leaves')">Leaf yellowing remedy</button>
+                </div>
+                
+                <!-- Chat Input area -->
+                <div class="chat-input-bar">
+                    <input type="text" id="chat-input" placeholder="Type agricultural question here..." onkeypress="handleChatKey(event)">
+                    <button class="btn" onclick="sendChatMessage()"><i class="fas fa-paper-plane"></i></button>
+                </div>
+            </div>
+        </div>
+
+        <!-- --- PAGE 7: COMMUNITY FORUM --- -->
+        <div id="forum" class="page">
+            <h2><i class="fas fa-users"></i> Farmer Community Board</h2>
+            <div class="grid-2">
+                <div class="card">
+                    <h3>Share Your Update</h3>
+                    <div class="forum-composer" style="margin-top: 1.5rem;">
+                        <label>Your Name</label>
+                        <input type="text" id="post-author" placeholder="Enter name e.g. Suresh Kumar">
+                        <label>Post Message</label>
+                        <textarea id="post-content" placeholder="Share crop queries, weather observations, or mandi tips with other local farmers..."></textarea>
+                        <button class="btn" style="width: 100%; margin-top: 1rem;" onclick="submitCommunityPost()"><i class="fas fa-paper-plane"></i> Publish Update</button>
+                    </div>
+                </div>
+                <div class="card">
+                    <h3>Recent Community Updates</h3>
+                    <div id="posts-feed" style="margin-top: 1.5rem;">
+                        <!-- Dynamic forum posts feed here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- --- PAGE 8: PROFILE & EXPENSES --- -->
+        <div id="profile" class="page">
+            <h2><i class="fas fa-user-circle"></i> Farm Management Registry</h2>
+            <div class="grid-2">
+                
+                <!-- Profile details form -->
+                <div class="card">
+                    <h3>Farmer Registry Details</h3>
+                    <div style="margin-top: 1.5rem;">
+                        <label>Full Name</label>
+                        <input type="text" id="profile-name">
+                        <label>Location (Mandi/District, State)</label>
+                        <input type="text" id="profile-location">
+                        <label>Primary Cultivated Crops</label>
+                        <input type="text" id="profile-crops">
+                        <label>Cultivation Area (Acres)</label>
+                        <input type="number" id="profile-land" step="0.1">
+                        <label>Preferred Language</label>
+                        <select id="profile-language">
+                            <option value="English">English</option>
+                            <option value="Telugu">Telugu</option>
+                            <option value="Hindi">Hindi</option>
+                        </select>
+                        <button class="btn" style="width: 100%; margin-top: 1.5rem;" onclick="saveProfile()"><i class="fas fa-save"></i> Save Settings</button>
+                    </div>
+                </div>
+
+                <!-- Expense tracking & pie chart -->
+                <div class="card">
+                    <h3>Financial Expense Tracker</h3>
+                    <div style="display: flex; gap: 10px; margin-top: 1.5rem;">
+                        <select id="exp-cat">
+                            <option value="Seeds">Seeds</option>
+                            <option value="Fertilizer">Fertilizer</option>
+                            <option value="Labor">Labor</option>
+                            <option value="Equipment">Equipment</option>
+                            <option value="Pesticides">Pesticides</option>
+                        </select>
+                        <input type="number" id="exp-amt" placeholder="Cost Amount (₹)">
+                        <button class="btn" onclick="submitExpense()"><i class="fas fa-plus"></i></button>
+                    </div>
+                    
+                    <div class="grid-2" style="margin-top: 1.5rem; gap:1.5rem;">
+                        <div style="height: 250px; position: relative;">
+                            <canvas id="expenseChart"></canvas>
+                        </div>
+                        <div>
+                            <h4 style="font-family:'Outfit'; font-size: 0.95rem; text-transform:uppercase; color:var(--text-muted); border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:5px;">Recent Logs</h4>
+                            <div class="expense-list-container" id="expense-logs">
+                                <!-- Dynamic expense items inject here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+    <!-- --- JAVASCRIPT APP CONTROLLER --- -->
+    <script>
+        // --- Navigation Controller ---
+        function showPage(pageId) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.nav-links button').forEach(b => b.classList.remove('active-nav'));
+            
+            document.getElementById(pageId).classList.add('active');
+            
+            // Highlight active button
+            const navButtons = document.querySelectorAll('.nav-links button');
+            navButtons.forEach(btn => {
+                const btnText = btn.querySelector('span').innerText.toLowerCase();
+                // Map page tabs to text matching
+                let matchId = pageId;
+                if (pageId === 'forum') matchId = 'community';
+                if (pageId === 'profile') matchId = 'farm logs';
+                if (pageId === 'chat') matchId = 'ai assistant';
+                
+                if (btnText === matchId) {
+                    btn.classList.add('active-nav');
+                }
+            });
+
+            // Trigger specific page fetches
+            if(pageId === 'weather') { fetchWeather(); }
+            if(pageId === 'market') { fetchMarketPrices(); }
+            if(pageId === 'schemes') { fetchSchemes(); }
+            if(pageId === 'forum') { fetchCommunityPosts(); }
+            if(pageId === 'profile') { fetchExpenses(); fetchProfile(); }
+        }
+
+        // --- Weather & Clock Features ---
+        async function fetchWeather() {
+            try {
+                const res = await fetch('/api/weather');
+                const data = await res.json();
+                
+                // Set banner HTML
+                document.getElementById('current-weather-banner').innerHTML = `
+                    <div style="font-size: 3.5rem; color: var(--primary-light);"><i class="fas fa-cloud-sun"></i></div>
+                    <div class="weather-meta">
+                        <span class="weather-loc"><i class="fas fa-map-marker-alt"></i> ${data.location}</span>
+                        <span class="weather-cond">${data.current.condition}</span>
+                    </div>
+                    <div class="weather-temp">${data.current.temp}°C</div>
+                `;
+                
+                // Load forecast grids
+                const forecastDiv = document.getElementById('forecast-cards');
+                forecastDiv.innerHTML = '';
+                data.forecast.forEach(f => {
+                    forecastDiv.innerHTML += `
+                        <div class="forecast-card">
+                            <div class="forecast-day">${f.day}</div>
+                            <div style="font-size: 1.8rem; color: var(--primary-light); margin: 5px 0;"><i class="fas fa-cloud-sun-rain"></i></div>
+                            <div class="forecast-temp">${f.temp}°C</div>
+                            <div style="font-size:0.85rem; color:var(--text-muted);">${f.condition}</div>
+                        </div>
+                    `;
+                });
+
+                // Update advisory statements
+                const advisoryText = generateIrrigationAdvisory(data.current.condition, data.forecast[0].condition, data.current.temp);
+                document.getElementById('advisory-text').innerHTML = advisoryText;
+                document.getElementById('dashboard-advisory').innerHTML = advisoryText;
+            } catch(e) {
+                console.error("Failed to load weather:", e);
+            }
+        }
+
+        function generateIrrigationAdvisory(currCond, foreCond, temp) {
+            const current = currCond.toLowerCase();
+            const forecast = foreCond.toLowerCase();
+            if (current.includes("rain") || forecast.includes("rain") || forecast.includes("shower")) {
+                return "🌧️ <strong>Irrigation Alert: Rainfall Detected in Forecast.</strong> We recommend turning off water pumps to conserve water and prevent soil drowning.";
+            } else if (temp > 35) {
+                return "☀️ <strong>Irrigation Alert: Extremely High Temperatures.</strong> Soil evaporation rates are high. Consider irrigating early morning or late evening to support roots.";
+            } else {
+                return "⛅ <strong>Irrigation Alert: Weather Conditions Stable.</strong> Normal watering schedule recommended. Ensure regular soil checks.";
+            }
+        }
+
+        // Secure Live Time (Indian Standard Time)
+        function updateISTClock() {
+            const date = new Date();
+            const timeStr = date.toLocaleTimeString('en-US', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const clockEl = document.getElementById('internet-time');
+            if (clockEl) clockEl.innerText = "IST: " + timeStr;
+        }
+        setInterval(updateISTClock, 1000);
+        updateISTClock();
+
+        // --- Live Mandi Prices ---
+        let rawMandiData = [];
+        async function fetchMarketPrices() {
+            document.getElementById('mandi-spinner').style.display = 'block';
+            document.getElementById('market-body').innerHTML = '';
+            
+            const crop = document.getElementById('market-crop').value;
+            try {
+                const res = await fetch(`/api/mandi_prices?crop=${crop}`);
+                rawMandiData = await res.json();
+                renderMandiTable(rawMandiData);
+            } catch(e) {
+                console.error("Mandi prices error:", e);
+            } finally {
+                document.getElementById('mandi-spinner').style.display = 'none';
+            }
+        }
+
+        function renderMandiTable(data) {
+            const tbody = document.getElementById('market-body');
+            tbody.innerHTML = '';
+            
+            if (data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">No records found for this crop.</td></tr>';
+                return;
+            }
+
+            data.forEach(item => {
+                let trendIcon = '';
+                let badgeClass = 'trend-flat';
+                if(item.trend === 'up') {
+                    trendIcon = '<i class="fas fa-chevron-up"></i> Up';
+                    badgeClass = 'trend-up';
+                } else if(item.trend === 'down') {
+                    trendIcon = '<i class="fas fa-chevron-down"></i> Down';
+                    badgeClass = 'trend-down';
+                } else {
+                    trendIcon = '<i class="fas fa-minus"></i> Flat';
+                    badgeClass = 'trend-flat';
+                }
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td><strong>${item.state}</strong></td>
+                        <td>${item.market}</td>
+                        <td>₹${item.min}</td>
+                        <td>₹${item.max}</td>
+                        <td><span class="trend-badge ${badgeClass}">${trendIcon}</span></td>
+                    </tr>
+                `;
+            });
+        }
+
+        function filterMandiTable() {
+            const query = document.getElementById('mandi-search').value.toLowerCase();
+            const filtered = rawMandiData.filter(item => 
+                item.state.toLowerCase().includes(query) || 
+                item.market.toLowerCase().includes(query)
+            );
+            renderMandiTable(filtered);
+        }
+
+        // --- Schemes System ---
+        let rawSchemes = [];
+        async function fetchSchemes() {
+            try {
+                const res = await fetch('/api/schemes');
+                rawSchemes = await res.json();
+                renderSchemes(rawSchemes);
+            } catch(e) {
+                console.error(e);
+            }
+        }
+
+        function renderSchemes(schemes) {
+            const container = document.getElementById('schemes-container');
+            container.innerHTML = '';
+            schemes.forEach(s => {
+                container.innerHTML += `
+                    <div class="scheme-card">
+                        <div>
+                            <span class="scheme-category">${s.category}</span>
+                            <h3>${s.name}</h3>
+                            <p>${s.desc}</p>
+                        </div>
+                        <button class="btn w-100 justify-center" style="margin-top: auto;" onclick="openEligibilityModal('${s.name}')">
+                            <i class="fas fa-check-circle"></i> Check Eligibility
+                        </button>
+                    </div>
+                `;
+            });
+        }
+
+        function filterSchemes() {
+            const query = document.getElementById('scheme-search').value.toLowerCase();
+            const filtered = rawSchemes.filter(s => 
+                s.name.toLowerCase().includes(query) || 
+                s.category.toLowerCase().includes(query) || 
+                s.desc.toLowerCase().includes(query)
+            );
+            renderSchemes(filtered);
+        }
+
+        let eligibilityScheme = "";
+        function openEligibilityModal(schemeName) {
+            eligibilityScheme = schemeName;
+            document.getElementById('modal-title').innerText = "Verify Eligibility: " + schemeName;
+            document.getElementById('eligibility-result').style.display = 'none';
+            document.getElementById('modal-land').value = '';
+            document.getElementById('modal-income').value = '';
+            document.getElementById('eligibility-modal').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('eligibility-modal').style.display = 'none';
+        }
+
+        function runEligibilityCheck() {
+            const land = parseFloat(document.getElementById('modal-land').value);
+            const income = parseFloat(document.getElementById('modal-income').value);
+            const resDiv = document.getElementById('eligibility-result');
+            
+            if(!land || !income || land <= 0 || income <= 0) {
+                resDiv.style.display = 'block';
+                resDiv.style.background = 'rgba(248, 113, 113, 0.1)';
+                resDiv.style.border = '1px solid var(--accent-red)';
+                resDiv.style.color = '#fee2e2';
+                resDiv.innerHTML = "⚠️ Please enter valid land size and family income.";
+                return;
+            }
+
+            resDiv.style.display = 'block';
+            resDiv.style.border = '1px solid var(--primary)';
+            
+            if(eligibilityScheme.includes("PM-KISAN")) {
+                if (land <= 5.0) {
+                    resDiv.style.background = 'rgba(16, 185, 129, 0.1)';
+                    resDiv.style.color = '#a7f3d0';
+                    resDiv.innerHTML = "✅ <strong>Eligible!</strong> Your cultivation land holding is within the small-farmer threshold (under 5 acres) for direct PM-KISAN benefits.";
+                } else {
+                    resDiv.style.background = 'rgba(248, 113, 113, 0.1)';
+                    resDiv.style.border = '1px solid var(--accent-red)';
+                    resDiv.style.color = '#fee2e2';
+                    resDiv.innerHTML = "❌ <strong>Ineligible.</strong> PM-KISAN targets small/marginal farmers with land holdings under 5 acres.";
+                }
+            } else if (eligibilityScheme.includes("PMFBY")) {
+                resDiv.style.background = 'rgba(16, 185, 129, 0.1)';
+                resDiv.style.color = '#a7f3d0';
+                resDiv.innerHTML = "✅ <strong>Eligible!</strong> Crop insurance is available to all farmers. Please upload crop planting details via your local cooperative to initiate policy.";
+            } else {
+                if (land <= 7.0 && income < 300000) {
+                    resDiv.style.background = 'rgba(16, 185, 129, 0.1)';
+                    resDiv.style.color = '#a7f3d0';
+                    resDiv.innerHTML = "✅ <strong>Highly Eligible.</strong> You meet small-scale farmer parameters. Final approval requires verification of land ownership documents.";
+                } else {
+                    resDiv.style.background = 'rgba(251, 191, 36, 0.1)';
+                    resDiv.style.border = '1px solid var(--accent-amber)';
+                    resDiv.style.color = '#fef08a';
+                    resDiv.innerHTML = "ℹ️ <strong>Conditionally Eligible.</strong> Income or land holding is slightly higher. Please proceed to the regional agriculture officer to query sub-categories.";
+                }
+            }
+        }
+
+        // --- AI Crop Doctor (Diagnostic Radar Scanner Overlay) ---
+        async function handleImageUpload(event) {
+            const file = event.target.files[0];
+            if(!file) return;
+
+            const preview = document.getElementById('preview');
+            const previewWrapper = document.getElementById('preview-wrapper');
+            const scannerRay = document.getElementById('scanner-ray');
+            const mlResult = document.getElementById('ml-result');
+            const loader = document.getElementById('loader');
+
+            preview.src = URL.createObjectURL(file);
+            previewWrapper.style.display = 'block';
+            scannerRay.style.display = 'block'; // Show scanner animation
+            mlResult.style.display = 'none';
+            loader.style.display = 'block';
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch('/api/predict_disease', { method: 'POST', body: formData });
+                const data = await response.json();
+                
+                if (data.error) {
+                    document.getElementById('res-disease').innerText = "Diagnostic Failure";
+                    document.getElementById('res-conf').innerText = "0";
+                    document.getElementById('res-remedy').innerText = data.error;
+                    document.getElementById('res-pest').innerText = "N/A";
+                    document.getElementById('demo-indicator').style.display = 'inline-block';
+                    document.getElementById('demo-indicator').innerText = "Error";
+                } else {
+                    document.getElementById('res-disease').innerText = data.disease;
+                    document.getElementById('res-conf').innerText = data.confidence.toFixed(1);
+                    document.getElementById('res-remedy').innerText = data.remedy;
+                    document.getElementById('res-pest').innerText = data.pesticide;
+                    
+                    const badge = document.getElementById('demo-indicator');
+                    if(data.is_demo) {
+                        badge.style.display = 'inline-block';
+                        badge.innerText = "Simulated / No Key";
+                        badge.style.background = 'rgba(251, 191, 36, 0.1)';
+                        badge.style.color = 'var(--accent-amber)';
+                    } else {
+                        badge.style.display = 'inline-block';
+                        badge.innerText = "Gemini Live Vision";
+                        badge.style.background = 'rgba(16, 185, 129, 0.15)';
+                        badge.style.color = 'var(--primary-light)';
+                    }
+                }
+                mlResult.style.display = 'block';
+            } catch(e) {
+                console.error("AI diagnostic failure:", e);
+            } finally {
+                scannerRay.style.display = 'none'; // Stop scanner animation
+                loader.style.display = 'none';
+            }
+        }
+
+        // --- Kisan Sahayak Chatbot ---
+        let chatHistory = [];
+
+        function handleChatKey(event) {
+            if (event.key === 'Enter') {
+                sendChatMessage();
+            }
+        }
+
+        function sendQuickPrompt(promptText) {
+            document.getElementById('chat-input').value = promptText;
+            sendChatMessage();
+        }
+
+        async function sendChatMessage() {
+            const inputEl = document.getElementById('chat-input');
+            const message = inputEl.value.trim();
+            if (!message) return;
+
+            const chatBox = document.getElementById('chat-box');
+            
+            // Append User message UI
+            chatBox.innerHTML += `
+                <div class="msg-bubble msg-user">
+                    <p>${escapeHtml(message)}</p>
+                </div>
+            `;
+            
+            inputEl.value = '';
+            chatBox.scrollTop = chatBox.scrollHeight;
+
+            // Mock Typing message from Bot
+            const typingId = 'typing-' + Date.now();
+            chatBox.innerHTML += `
+                <div class="msg-bubble msg-bot" id="${typingId}">
+                    <p><i class="fas fa-spinner fa-spin"></i> Kisan Sahayak is thinking...</p>
+                </div>
+            `;
+            chatBox.scrollTop = chatBox.scrollHeight;
+
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: message, history: chatHistory })
+                });
+                const data = await response.json();
+                
+                // Remove typing placeholder
+                const typingEl = document.getElementById(typingId);
+                if (typingEl) typingEl.remove();
+
+                // Format markdown bullet points and bolding to clean HTML elements
+                const formattedResponse = formatMarkdown(data.response);
+                
+                // Append bot message
+                chatBox.innerHTML += `
+                    <div class="msg-bubble msg-bot">
+                        ${formattedResponse}
+                    </div>
+                `;
+                chatBox.scrollTop = chatBox.scrollHeight;
+
+                // Push message to memory chatHistory
+                chatHistory.push({ role: 'user', content: message });
+                chatHistory.push({ role: 'assistant', content: data.response });
+
+                // Keep history size in limits
+                if(chatHistory.length > 20) chatHistory.shift();
+
+            } catch(e) {
+                console.error("Chat failure:", e);
+                const typingEl = document.getElementById(typingId);
+                if (typingEl) typingEl.remove();
+                chatBox.innerHTML += `
+                    <div class="msg-bubble msg-bot">
+                        <p style="color:var(--accent-red);">⚠️ Failed to connect to Kisan Sahayak. Please verify connections.</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Basic HTML escaping
+        function escapeHtml(text) {
+            return text
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        // Basic Markdown helper
+        function formatMarkdown(text) {
+            let html = escapeHtml(text);
+            // Replace bold **text**
+            html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            // Replace simple list bullet *
+            html = html.replace(/^\*\s(.*)$/gm, '<li>$1</li>');
+            // Group list items
+            html = html.replace(/(<li>.*<\/li>)/gs, '<ul>$1</ul>');
+            // Replace new lines
+            html = html.split('\n').map(line => line.trim().startsWith('<ul>') || line.trim().endsWith('</ul>') || line.trim().startsWith('<li>') ? line : `<p>${line}</p>`).join('');
+            return html;
+        }
+
+        // --- Farmer Profile Sync (SQLite DB) ---
+        async function fetchProfile() {
+            try {
+                const response = await fetch('/api/profile');
+                const data = await response.json();
+                
+                // Populate input inputs
+                document.getElementById('profile-name').value = data.name;
+                document.getElementById('profile-location').value = data.location;
+                document.getElementById('profile-crops').value = data.crops;
+                document.getElementById('profile-land').value = data.land_area;
+                document.getElementById('profile-language').value = data.language;
+            } catch(e) {
+                console.error("Failed to load profile:", e);
+            }
+        }
+
+        async function saveProfile() {
+            const profile = {
+                name: document.getElementById('profile-name').value,
+                location: document.getElementById('profile-location').value,
+                crops: document.getElementById('profile-crops').value,
+                land_area: parseFloat(document.getElementById('profile-land').value || 5),
+                language: document.getElementById('profile-language').value
+            };
+
+            try {
+                const response = await fetch('/api/profile', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(profile)
+                });
+                if(response.ok) {
+                    alert("Farm Profile saved successfully to local SQLite Database.");
+                    fetchWeather(); // Re-trigger weather to match new location city!
+                }
+            } catch(e) {
+                console.error("Failed to save profile:", e);
+            }
+        }
+
+        // --- Expense Registry Sync (SQLite DB) ---
+        let expenseChart;
+        let expenseDataSummary = { Seeds: 0, Fertilizer: 0, Labor: 0 };
+
+        function initializeChart() {
+            const ctx = document.getElementById('expenseChart').getContext('2d');
+            
+            // Custom styling plugin for legends and font sizing
+            expenseChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Seeds', 'Fertilizer', 'Labor', 'Equipment', 'Pesticides'],
+                    datasets: [{
+                        data: [0, 0, 0, 0, 0],
+                        backgroundColor: ['#10b981', '#fbbf24', '#38bdf8', '#a7f3d0', '#818cf8'],
+                        borderColor: '#08120e',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#94a3b8',
+                                font: { family: 'Plus Jakarta Sans', size: 12 }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        async function fetchExpenses() {
+            try {
+                const res = await fetch('/api/expenses');
+                const data = await res.json();
+                
+                // Draw dynamic listing UI
+                const container = document.getElementById('expense-logs');
+                container.innerHTML = '';
+                
+                if(data.expenses.length === 0) {
+                    container.innerHTML = '<div style="color:var(--text-muted); font-size:0.9rem; text-align:center; padding: 1.5rem 0;">No costs logged yet.</div>';
+                }
+
+                data.expenses.forEach(e => {
+                    container.innerHTML += `
+                        <div class="expense-item">
+                            <div class="expense-item-meta">
+                                <h4>${e.category}</h4>
+                                <span>${e.date}</span>
+                            </div>
+                            <div class="expense-item-actions">
+                                <span>₹${e.amount}</span>
+                                <button class="btn-delete" onclick="deleteExpense(${e.id})"><i class="fas fa-trash-alt"></i></button>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                // Map summary keys to update the Pie/Doughnut Chart
+                const categories = ['Seeds', 'Fertilizer', 'Labor', 'Equipment', 'Pesticides'];
+                const values = categories.map(cat => data.summary[cat] || 0);
+
+                expenseChart.data.datasets[0].data = values;
+                expenseChart.update();
+
+            } catch(e) {
+                console.error("Expense fetch error:", e);
+            }
+        }
+
+        async function submitExpense() {
+            const category = document.getElementById('exp-cat').value;
+            const amount = parseFloat(document.getElementById('exp-amt').value);
+
+            if(!amount || amount <= 0) {
+                alert("Please enter a valid expense cost.");
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/expenses', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ category: category, amount: amount })
+                });
+                if(response.ok) {
+                    document.getElementById('exp-amt').value = '';
+                    fetchExpenses();
+                }
+            } catch(e) {
+                console.error("Expense logging error:", e);
+            }
+        }
+
+        async function deleteExpense(id) {
+            if(!confirm("Are you sure you want to delete this expense record?")) return;
+            try {
+                const response = await fetch(`/api/expenses/${id}`, { method: 'DELETE' });
+                if(response.ok) {
+                    fetchExpenses();
+                }
+            } catch(e) {
+                console.error("Expense deletion error:", e);
+            }
+        }
+
+        // --- Community Forum (SQLite DB Sync) ---
+        async function fetchCommunityPosts() {
+            try {
+                const res = await fetch('/api/community');
+                const posts = await res.json();
+                
+                const container = document.getElementById('posts-feed');
+                container.innerHTML = '';
+                
+                if(posts.length === 0) {
+                    container.innerHTML = '<div style="color:var(--text-muted); text-align:center; padding: 2rem 0;">No community messages yet. Be the first to share an update!</div>';
+                    return;
+                }
+
+                posts.forEach(p => {
+                    container.innerHTML += `
+                        <div class="post-card">
+                            <div class="post-header">
+                                <span class="post-user">${escapeHtml(p.user)}</span>
+                                <span class="post-time">${p.time}</span>
+                            </div>
+                            <p class="post-text">${escapeHtml(p.text)}</p>
+                        </div>
+                    `;
+                });
+            } catch(e) {
+                console.error("Failed to load community board:", e);
+            }
+        }
+
+        async function submitCommunityPost() {
+            const author = document.getElementById('post-author').value.trim();
+            const text = document.getElementById('post-content').value.trim();
+
+            if(!author || !text) {
+                alert("Please enter both your name and post message text.");
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/community', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ user: author, text: text })
+                });
+                if(response.ok) {
+                    document.getElementById('post-content').value = '';
+                    fetchCommunityPosts();
+                }
+            } catch(e) {
+                console.error("Community post submit failure:", e);
+            }
+        }
+
+        // --- Drag and Drop File Handlers ---
+        window.addEventListener('DOMContentLoaded', () => {
+            const uploadArea = document.querySelector('.upload-area');
+            if (!uploadArea) return;
+
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                uploadArea.addEventListener(eventName, (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }, false);
+            });
+
+            ['dragenter', 'dragover'].forEach(eventName => {
+                uploadArea.addEventListener(eventName, () => {
+                    uploadArea.style.borderColor = 'var(--primary)';
+                    uploadArea.style.background = 'rgba(16, 185, 129, 0.08)';
+                }, false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                uploadArea.addEventListener(eventName, () => {
+                    uploadArea.style.borderColor = 'rgba(16, 185, 129, 0.3)';
+                    uploadArea.style.background = 'rgba(255, 255, 255, 0.01)';
+                }, false);
+            });
+
+            uploadArea.addEventListener('drop', (e) => {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+                if (files.length > 0) {
+                    const fileInput = document.getElementById('file-upload');
+                    if (fileInput) {
+                        fileInput.files = files;
+                        const event = new Event('change');
+                        fileInput.dispatchEvent(event);
+                    }
+                }
+            }, false);
+        });
+
+        // App Initializer
+        window.onload = function() {
+            initializeChart();
+            fetchWeather();
+            fetchProfile();
+            updateISTClock();
+        };
+    </script>
+</body>
+</html>
