@@ -306,16 +306,20 @@ CROP_MAPPING = {
 
 @app.route('/')
 def home():
-    backend_url = os.getenv("RENDER_BACKEND_URL", "")
-    # If running on the Render backend instance, redirect to the Vercel frontend or return a status JSON
-    if not backend_url:
-        frontend_url = os.getenv("FRONTEND_URL", "")
-        if frontend_url:
-            from flask import redirect
-            return redirect(frontend_url)
-        return jsonify({"status": "Kisan Mitra API Server Active", "version": "1.0"})
-        
-    return render_template('index.html', backend_url=backend_url)
+    try:
+        backend_url = os.getenv("RENDER_BACKEND_URL", "")
+        # If running on the Render backend instance, redirect to the Vercel frontend or return a status JSON
+        if not backend_url:
+            frontend_url = os.getenv("FRONTEND_URL", "")
+            if frontend_url:
+                from flask import redirect
+                return redirect(frontend_url)
+            return jsonify({"status": "Kisan Mitra API Server Active", "version": "1.0"})
+            
+        return render_template('index.html', backend_url=backend_url)
+    except Exception as e:
+        import traceback
+        return f"<h3>Debug Info: Flask Error on Vercel</h3><pre>{traceback.format_exc()}</pre>", 500
 
 # --- 1. LIVE WEATHER API ---
 @app.route('/api/weather', methods=['GET'])
