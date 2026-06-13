@@ -1696,6 +1696,19 @@
 
     <!-- --- JAVASCRIPT APP CONTROLLER --- -->
     <script>
+        // Intercept global fetch to automatically prepend backend API URL when deployed on Vercel
+        const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+            ? ''
+            : 'https://smart-kisan-mitra.onrender.com'; // Adjust this to your actual Render URL if needed
+
+        const originalFetch = window.fetch;
+        window.fetch = function(input, init) {
+            if (typeof input === 'string' && input.startsWith('/api/')) {
+                input = API_BASE_URL + input;
+            }
+            return originalFetch(input, init);
+        };
+
         // --- Navigation Controller ---
         function toggleNavDrawer() {
             const wrapper = document.getElementById('nav-links-wrapper');

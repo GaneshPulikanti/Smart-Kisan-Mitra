@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify, render_template
+from flask_cors import CORS
 import certifi
 import requests
 import random
@@ -133,6 +134,7 @@ def scrape_live_vegetable_prices(crop_name):
 load_dotenv()
 
 app = Flask(__name__)
+CORS(app)
 
 # --- MongoDB Database Setup ---
 MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
