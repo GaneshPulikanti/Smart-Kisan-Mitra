@@ -472,6 +472,8 @@ def predict_disease():
         mime_type = file.content_type or "image/jpeg"
         
         api_key = os.getenv("GEMINI_API_KEY")
+        if api_key:
+            api_key = api_key.strip("'\"")
         if not api_key:
             time.sleep(1.5)
             return jsonify({
@@ -482,7 +484,7 @@ def predict_disease():
                 "is_demo": True
             })
 
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
         headers = {"Content-Type": "application/json"}
         
         prompt = """
@@ -546,13 +548,15 @@ def chat_assistant():
         return jsonify({"error": "Message text is required"}), 400
         
     api_key = os.getenv("GEMINI_API_KEY")
+    if api_key:
+        api_key = api_key.strip("'\"")
     if not api_key:
         return jsonify({
             "response": "Hello! I am Kisan Sahayak, your agriculture assistant. To talk to me live, please register a `GEMINI_API_KEY` inside your local `.env` configuration file.",
             "is_demo": True
         })
         
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
     headers = {"Content-Type": "application/json"}
     
     system_prompt = (
