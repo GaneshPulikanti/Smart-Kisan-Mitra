@@ -134,9 +134,8 @@ def scrape_live_vegetable_prices(crop_name):
 load_dotenv()
 
 app = Flask(__name__)
-# Allow CORS from the Vercel frontend URL configured in environment variables
-frontend_url = os.getenv("FRONTEND_URL", "*")
-CORS(app, resources={r"/api/*": {"origins": [frontend_url, "http://localhost:5000", "http://127.0.0.1:5000", "http://localhost:3000"]}})
+# Enable CORS for all API endpoints to allow Vercel frontend requests
+CORS(app, resources={r"/api/*": {"origins": "*"}})
 
 # --- MongoDB Database Setup ---
 MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
