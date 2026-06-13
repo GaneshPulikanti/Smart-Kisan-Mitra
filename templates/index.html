@@ -1702,7 +1702,7 @@
             : '{{ backend_url }}';
 
         // Robust Fallback: If Vercel serves the file statically (meaning Jinja wasn't run to replace the variable)
-        if (API_BASE_URL === '{{' + ' backend_url ' + '}}' || !API_BASE_URL) {
+        if (API_BASE_URL === '{{ '{{' }}' + ' backend_url ' + '{{ '}}' }}' || !API_BASE_URL) {
             API_BASE_URL = 'https://smart-kisan-mitra-tkoy.onrender.com';
         }
 
