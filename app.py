@@ -140,52 +140,66 @@ CORS(app, resources={r"/api/*": {"origins": [frontend_url, "http://localhost:500
 
 # --- MongoDB Database Setup ---
 MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
-# Try to connect with certifi, fallback to standard SSL if certifi raises an issue on Linux
+client = None
+db = None
+profiles_col = None
+expenses_col = None
+posts_col = None
+mandi_cache_col = None
+
 try:
-    client = MongoClient(MONGO_URI, tlsCAFile=certifi.where())
-    # Quick ping to test connection
+    # Set short connection timeout for serverless environments so it fails fast without causing Vercel function timeout
+    client = MongoClient(MONGO_URI, tlsCAFile=certifi.where(), serverSelectionTimeoutMS=2000)
     client.admin.command('ping')
 except Exception:
-    client = MongoClient(MONGO_URI)
+    try:
+        client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=2000)
+        client.admin.command('ping')
+    except Exception as e:
+        print(f"⚠️ MongoDB connection failed (running in offline/serverless mode): {e}")
+        client = None
 
-# Select database
-db = client["kisan_mitra"]
-
-# Collections (equivalent to SQL Tables)
-profiles_col = db["profiles"]
-expenses_col = db["expenses"]
-posts_col = db["community_posts"]
-mandi_cache_col = db["mandi_price_cache"]
-
+if client:
+    db = client["kisan_mitra"]
+    profiles_col = db["profiles"]
+    expenses_col = db["expenses"]
+    posts_col = db["community_posts"]
+    mandi_cache_col = db["mandi_price_cache"]
 
 def seed_database():
-    # 1. Initial profile seed
-    if profiles_col.count_documents({}) == 0:
-        profiles_col.insert_one({
-            "name": "Ramesh Kumar",
-            "location": "Atmakur, Andhra Pradesh",
-            "crops": "Rice, Cotton",
-            "land_area": 5.0,
-            "language": "English"
-        })
-        print("Database Seeded: Default profile created.")
-        
-    # 2. Initial community posts seed
-    if posts_col.count_documents({}) == 0:
-        posts = [
-            {
-                "user": "Suresh N.", 
-                "text": "Has anyone noticed the whiteflies on the cotton crop recently?", 
-                "created_at": datetime.datetime.utcnow() - datetime.timedelta(hours=1)
-            },
-            {
-                "user": "Agri Expert", 
-                "text": "Unseasonal rains expected tomorrow. Please cover harvested paddy.", 
-                "created_at": datetime.datetime.utcnow() - datetime.timedelta(hours=3)
-            }
-        ]
-        posts_col.insert_many(posts)
-        print("Database Seeded: Initial community posts created.")
+    if not client:
+        print("Skipping database seeding: No active database connection.")
+        return
+    try:
+        # 1. Initial profile seed
+        if profiles_col.count_documents({}) == 0:
+            profiles_col.insert_one({
+                "name": "Ramesh Kumar",
+                "location": "Atmakur, Andhra Pradesh",
+                "crops": "Rice, Cotton",
+                "land_area": 5.0,
+                "language": "English"
+            })
+            print("Database Seeded: Default profile created.")
+            
+        # 2. Initial community posts seed
+        if posts_col.count_documents({}) == 0:
+            posts = [
+                {
+                    "user": "Suresh N.", 
+                    "text": "Has anyone noticed the whiteflies on the cotton crop recently?", 
+                    "created_at": datetime.datetime.utcnow() - datetime.timedelta(hours=1)
+                },
+                {
+                    "user": "Agri Expert", 
+                    "text": "Unseasonal rains expected tomorrow. Please cover harvested paddy.", 
+                    "created_at": datetime.datetime.utcnow() - datetime.timedelta(hours=3)
+                }
+            ]
+            posts_col.insert_many(posts)
+            print("Database Seeded: Initial community posts created.")
+    except Exception as e:
+        print(f"Database seeding failed: {e}")
 
 # Run database seeder
 seed_database()
