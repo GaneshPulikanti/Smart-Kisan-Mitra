@@ -136,7 +136,13 @@ app = Flask(__name__)
 
 # --- MongoDB Database Setup ---
 MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
-client = MongoClient(MONGO_URI, tlsCAFile=certifi.where())
+# Try to connect with certifi, fallback to standard SSL if certifi raises an issue on Linux
+try:
+    client = MongoClient(MONGO_URI, tlsCAFile=certifi.where())
+    # Quick ping to test connection
+    client.admin.command('ping')
+except Exception:
+    client = MongoClient(MONGO_URI)
 
 # Select database
 db = client["kisan_mitra"]
