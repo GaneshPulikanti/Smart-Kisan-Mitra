@@ -134,7 +134,9 @@ def scrape_live_vegetable_prices(crop_name):
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app)
+# Allow CORS from the Vercel frontend URL configured in environment variables
+frontend_url = os.getenv("FRONTEND_URL", "*")
+CORS(app, resources={r"/api/*": {"origins": [frontend_url, "http://localhost:5000", "http://127.0.0.1:5000", "http://localhost:3000"]}})
 
 # --- MongoDB Database Setup ---
 MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
@@ -290,7 +292,8 @@ CROP_MAPPING = {
 
 @app.route('/')
 def home():
-    return render_template('index.html')
+    backend_url = os.getenv("RENDER_BACKEND_URL", "")
+    return render_template('index.html', backend_url=backend_url)
 
 # --- 1. LIVE WEATHER API ---
 @app.route('/api/weather', methods=['GET'])

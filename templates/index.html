@@ -1699,7 +1699,7 @@
         // Intercept global fetch to automatically prepend backend API URL when deployed on Vercel
         const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
             ? ''
-            : 'https://smart-kisan-mitra.onrender.com'; // Adjust this to your actual Render URL if needed
+            : '{{ backend_url }}';
 
         const originalFetch = window.fetch;
         window.fetch = function(input, init) {
